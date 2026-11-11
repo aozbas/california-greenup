@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>When does California turn green?</title>
+  <meta name="description" content="Twenty-six years of NASA MODIS satellite greenness over California, one frame about every 8 days.">
+  <link rel="stylesheet" href="css/site.css">
+</head>
+<body>
+  <div id="loading" role="status">
+    <h1>When does California turn green?</h1>
+    <p id="progress-label">Loading the map&hellip;</p>
+    <div class="progress"><div id="progress-bar"></div></div>
+  </div>
+
+  <div id="app" hidden>
+    <header class="top">
+      <h1>When does California turn green?</h1>
+      <p class="lede">Twenty-six years of NASA satellite measurements of how green California is. Pick a place, press play, or drag the timeline. Greenness is measured with NASA's vegetation index (NDVI): the darker the green, the more plants are growing.</p>
+    </header>
+
+
+    <main class="grid">
+      <section class="card mapcard" aria-labelledby="h-place">
+        <div class="areabar">
+          <h2 id="h-place"><span class="step">1</span> Pick a place</h2>
+          <div class="tools">
+            <button id="tool-lasso" class="ghost" aria-pressed="false">&#9998; Draw an area</button>
+            <button id="tool-clear" class="ghost">Whole state</button>
+          </div>
+        </div>
+        <div class="regions" id="regions" role="group" aria-label="Regions: greener or browner than usual right now"></div>
+        <div class="mapstage">
+          <div id="map"></div>
+          <div id="buffering" hidden>Loading more years&hellip;</div>
+        </div>
+        <p class="hint" id="area-hint"></p>
+        <div class="layerbar">
+          <h2><span class="step">3</span> What to show</h2>
+          <div class="seg" id="layer-seg" role="group" aria-label="Map layer">
+            <button data-layer="green" class="on">Greenness</button>
+            <button data-layer="anom">Greener or browner than usual</button>
+          </div>
+        </div>
+        <div class="legend" id="legend"></div>
+        <p class="subtitle" id="map-sub"></p>
+      </section>
+
+
+      <div class="rightcol">
+        <section class="card timecard" aria-labelledby="h-time">
+          <div class="timehead">
+            <h2 id="h-time"><span class="step">2</span> Move through time</h2>
+            <button id="play" class="play" aria-label="Play or pause">&#9654; Play</button>
+            <label class="speed">Speed
+              <select id="speed" aria-label="Playback speed">
+                <option value="16">16 days / s</option>
+                <option value="32">32 days / s</option>
+                <option value="64" selected>64 days / s</option>
+                <option value="128">128 days / s</option>
+                <option value="256">256 days / s</option>
+              </select>
+            </label>
+            <div class="nowdate" id="nowdate"></div>
+            <div class="badge" id="badge"></div>
+            <div class="loadstatus" id="loadstatus"></div>
+          </div>
+          <div id="timeline"></div>
+          <p class="subtitle wide" id="time-sub">Each cell is one satellite composite (Terra or Aqua, about 8 days apart), coloured by how much greener (teal) or browner (brown) the chosen place was than usual for that time of year. Drag, click, or use the arrow keys.</p>
+        </section>
+        <section class="card chartcard" aria-labelledby="h-chart">
+          <h2 id="h-chart" class="visually-hidden">Greenness through the year</h2>
+          <div id="readout" aria-live="polite"></div>
+          <div class="linekey" aria-hidden="true">
+            <span><i class="k faint"></i>each other year</span>
+            <span><i class="k cur"></i>the year on the map</span>
+            <span><i class="k usual"></i>usual (middle of 2001-2025)</span>
+            <span><i class="k band"></i>usual range</span>
+          </div>
+          <div id="seasonal"></div>
+          <p class="subtitle" id="chart-sub"></p>
+        </section>
+      </div>
+    </main>
+
+
+    <details class="about card">
+      <summary>About this data</summary>
+      <ul>
+        <li><b>Source:</b> NASA MODIS vegetation index (NDVI), Terra and Aqua satellites, via NASA GIBS. Each frame is a 16-day composite that keeps every pixel's best observation in the window.
+          Terra's and Aqua's composites are offset by 8 days, so together they give one frame about every 8 days (Aqua from mid-2002).</li>
+        <li><b>State outline:</b> US Census boundaries (via us-atlas), used only to draw and clip the map.</li>
+        <li><b>Decoding:</b> GIBS serves colour-coded tiles, and each colour maps back to a 0.005-wide NDVI range (published colormap), so values are exact to about 0.005.</li>
+        <li><b>Resolution:</b> 1&nbsp;km pixels averaged 2&times;2 into the 2&nbsp;km cells you see. Only California land is shown. Terra and Aqua agree to within 0.01 NDVI on average, so they are merged without adjustment.</li>
+        <li><b>Charts:</b> a place's value is the <b>median</b> of its cells. "Usual" is the median across 2001-2025 (2000 is a partial year) for the same time of year. "Greener/browner" is the difference from it. The shaded band on the chart is the usual range: the middle half of years.</li>
+        <li><b>Between frames:</b> the map blends the two nearest real frames, so playback looks smooth. There is no daily vegetation data, so the badge says when you are on a real observation.</li>
+        <li><b>Left out:</b> two composites that were clearly broken (Terra, Apr 22 2000, with 38% of pixels empty, and Aqua, Mar 30 2022, with a statewide dip to 0.11 between neighbours at 0.40), found with an automatic check. The map blends across the gap.</li>
+        <li><b>Limits:</b> clouds, snow and haze can still dip a composite. NDVI at or below 0 (snow, water, bare ground) is kept as a real value.</li>
+      </ul>
+    </details>
+
+    <section class="writeup card" id="writeup" aria-labelledby="h-writeup">
+      <h2 id="h-writeup">Write-up</h2>
+      <h3>Design rationale</h3>
+      <p>[Design rationale goes here.]</p>
+      <h3>Development process</h3>
+      <p>[Development process goes here.]</p>
+    </section>
+
+    <footer class="credits">By Alpaslan Ozbas, Bora Vanli and Nuraiym Mirbekova for DSC 106, Fall 2026.</footer>
+  </div>
+
+  <script src="vendor/d3.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>

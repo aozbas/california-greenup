@@ -1,0 +1,14 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# Satellite downloads and large intermediates (rebuilt by scripts/)
+data/raw/
+data/cache/
+
+# Operating system files
+.DS_Store
+Thumbs.db
+Desktop.ini

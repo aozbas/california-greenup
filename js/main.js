@@ -36,7 +36,7 @@ function start(data) {
   $('#loading').hidden = true;
 
   let area = makeArea('state', 'All of California', null);
-  let values = null, typical = null;
+  let values = null, typical = null, baseYears = 0;
   function makeArea(key, label, idx) {
     let mask = null;
     if (idx) { mask = new Uint8Array(data.N); for (let j = 0; j < idx.length; j++) mask[idx[j]] = 1; }
@@ -92,13 +92,17 @@ function start(data) {
   function refreshArea() {
     const r = data.areaSeries(area);
     values = r.values;
+    baseYears = r.baseYears;
     typical = data.typicalOf(values);
     const anom = data.anomalySeries(values, typical);
     const abs = Array.from(anom).filter(Number.isFinite).map(Math.abs).sort(d3.ascending);
     const lim = Math.max(0.03, abs.length ? d3.quantileSorted(abs, 0.98) : 0.05);
     timeline.setAnomaly(anom, lim);
     seasonal.setData(data.yearLines(values), typical);
-    $('#chart-sub').textContent = `${area.label}. Each line is one year of satellite observations (about every 8 days), showing the median greenness of the selected 2 km cells. "Usual" is the median over 2001-2025 at the same time of year.`;
+    const usualTxt = baseYears < data.baseTotal
+      ? `"Usual" will be the median over 2001-2025 at the same time of year once all years load (${baseYears} of ${data.baseTotal} so far).`
+      : '"Usual" is the median over 2001-2025 at the same time of year.';
+    $('#chart-sub').textContent = `${area.label}. Each line is one year of satellite observations (about every 8 days), showing the median greenness of the selected 2 km cells. ${usualTxt}`;
   }
 
   let dirty = true, share = NaN;
@@ -133,8 +137,10 @@ function start(data) {
     const sat = obs.sensor[iN] === 'T' ? 'Terra' : 'Aqua';
     $('#badge').className = `badge ${observed ? 'obs' : ''}`;
     $('#badge').textContent = observed ? `Real observation (${sat})` : 'Between observations (blended)';
+    const partial = baseYears < data.baseTotal;
     let verdict;
-    if (!Number.isFinite(diff)) verdict = '';
+    if (partial) verdict = `<span class="muted">Still loading years (${baseYears} of ${data.baseTotal}), so the usual value is not final yet.</span>`;
+    else if (!Number.isFinite(diff)) verdict = '';
     else if (Math.abs(diff) < 0.02) verdict = '<b>About as green as usual.</b>';
     else verdict = `<b class="${diff > 0 ? 'up' : 'down'}">${diff > 0 ? 'Greener' : 'Browner'} than usual by ${fmt(Math.abs(diff))}.</b>`;
     const shareTxt = Number.isFinite(share) ? ` Across California, <b>${Math.round(share * 100)}%</b> of land is greener than usual.` : '';

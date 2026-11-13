@@ -91,7 +91,7 @@
         <li><b>Source:</b> NASA MODIS vegetation index (NDVI), Terra and Aqua satellites, via NASA GIBS. Each frame is a 16-day composite that keeps every pixel's best observation in the window.
           Terra's and Aqua's composites are offset by 8 days, so together they give one frame about every 8 days (Aqua from mid-2002).</li>
         <li><b>State outline:</b> US Census boundaries (via us-atlas), used only to draw and clip the map.</li>
-        <li><b>Decoding:</b> GIBS serves colour-coded tiles, and each colour maps back to a 0.005-wide NDVI range (published colormap), so values are exact to about 0.005.</li>
+        <li><b>Decoding:</b> GIBS serves colour-coded tiles. NASA's published colour key gives each colour an NDVI range (0.005 to 0.01 wide above 0, about 0.1 wide below 0), and we use the middle of each range, so values are approximate.</li>
         <li><b>Resolution:</b> 1&nbsp;km pixels averaged 2&times;2 into the 2&nbsp;km cells you see. Only California land is shown. Terra and Aqua agree to within 0.01 NDVI on average, so they are merged without adjustment.</li>
         <li><b>Charts:</b> a place's value is the <b>median</b> of its cells. "Usual" is the median across 2001-2025 (2000 is a partial year) for the same time of year. "Greener/browner" is the difference from it. The shaded band on the chart is the usual range: the middle half of years.</li>
         <li><b>Between frames:</b> the map blends the two nearest real frames, so playback looks smooth. There is no daily vegetation data, so the badge says when you are on a real observation.</li>
@@ -102,10 +102,76 @@
 
     <section class="writeup card" id="writeup" aria-labelledby="h-writeup">
       <h2 id="h-writeup">Write-up</h2>
+      <h3>Motivation</h3>
+      <p>We wanted to answer one question: when does each part of California turn green during the year, and how much does a good or bad year change that?</p>
+      <p>We started out assuming spring is the green season everywhere. Our exploratory graphs showed that this is not true for California. The coastal hills and the San Joaquin Valley are greenest in early March and turn brown by summer. The Sierra Nevada is greenest in July after the snow melts. The Sacramento Valley peaks in late June, mostly because of irrigated crops. And about a third of the state, mostly desert and evergreen forest, barely changes at all.</p>
+      <p>We also found that green and brown years don't affect every region the same way. Between 2005 (the greenest spring in our data) and 2014 (the least green), the Coast Range changed a lot, but the Sierra was actually greener in 2014.</p>
+      <p>A static chart can only show one season or one year at a time. We wanted people to be able to watch the green move across the state, and then pick any place and any year and compare it to what is normal there.</p>
+
+      <h3>Data and transformations</h3>
+      <p>We used NASA MODIS NDVI data from NASA GIBS. NDVI is a greenness score where bare ground is close to 0 and thick forest is around 0.9. We used the 16-day composites from both the Terra and Aqua satellites. Their windows are 8 days apart, so together we get a new image about every 8 days, from March 2000 to December 2025 (1,132 images total).</p>
+      <p>Here is what we did to the data:</p>
+      <ul>
+        <li>GIBS gives NDVI as colored images (not numbers). NASA publishes the color key, so we converted each pixel's color back into its NDVI value.</li>
+        <li>We kept only the pixels inside California. We left in values at or below 0 (snow and water) because they are real readings. This is why the Sierra looks very pale in winter.</li>
+        <li>Some 2023 images came back corrupted, so we rebuilt them from the higher resolution 250 m images. We also removed two images that were clearly broken (one was 38% empty, and in the other the whole state suddenly dropped to 0.11).</li>
+        <li>Terra and Aqua were within 0.01 of each other on average, so we combined them into one timeline.</li>
+        <li>We averaged the 1 km pixels into 2 km cells so the whole dataset could load in a browser.</li>
+        <li>For the "usual" value, we took the median of 2001 to 2025 for each cell and each time of year. We used the median instead of the mean so one extreme year wouldn't skew it.</li>
+        <li>"Greener or browner than usual" is just the value on that date minus the usual value.</li>
+        <li>For a region or an area you draw, we use the median of all the cells inside it.</li>
+        <li>There is no daily data, so during playback the days between two real images are blended. We added a label next to the date that says whether you are looking at a real observation or a blended one.</li>
+      </ul>
+      <p>We picked 2005 and 2014 as examples based on greenness (not rainfall data), so we call them "green" and "brown" years instead of "wet" and "dry."</p>
+
       <h3>Design rationale</h3>
-      <p>[Design rationale goes here.]</p>
+      <p>The page has three main parts that are all linked. The map shows where, the timeline shows which year, and the seasonal chart shows when in the year. They all share the same date and the same selected area, so changing one updates all of them. We numbered the steps (pick a place, move through time, choose what to show) so first-time users know where to start. We tried to keep the controls simple, kind of like the NameGrapher example from class.</p>
+
+      <h4>Map</h4>
+      <p>Each 2 km cell is a colored square in its real location. We drew the map on a canvas instead of SVG because there are about 135,000 cells. Redrawing that many SVG elements on every frame of playback would be too slow.</p>
+      <p>The map has two views. The greenness view uses a yellow-to-green color scale from 0 to 0.9. We chose a sequential scale because NDVI only goes in one direction, and darker green for more plants felt natural. We stopped at 0.9 because almost nothing in California goes higher.</p>
+      <p>The "greener or browner than usual" view uses a brown-white-teal diverging scale centered at 0. A diverging scale made sense because this value has a meaningful middle (normal). Brown looks like dry plants and teal looks like healthy ones, and we avoided red and green so the map still works for people who are red-green colorblind. Since normal is white, the unusual areas stand out. In our exploratory graphs we used orange and blue for this kind of map, but for the final site we switched to brown and teal and used the same colors in the map, timeline, and region tiles so they all mean the same thing.</p>
+      <p>When you select an area, the rest of the map fades instead of disappearing, so you still know where you are.</p>
+
+      <h4>Timeline</h4>
+      <p>The timeline has one thin cell for each satellite image, colored by how much greener or browner than usual the selected area was. It is basically our year-by-season heatmap from the exploratory stage squeezed into one row. We liked this because you can spot good and bad years (like 2005 and 2014) before you even press play, and then jump straight to them.</p>
+      <p>The color range adjusts to the selected area. If we used one fixed range, quiet places like the desert would look almost completely white. The tooltip still shows the actual number. Years that are still loading show up faded.</p>
+
+      <h4>Seasonal chart</h4>
+      <p>The x axis is the day of the year and the y axis is NDVI. Every year is drawn as a faint gray line on the same calendar, and the usual year is a thick black line with a gray band (the "usual range") showing the middle half of years. The year you are on is drawn in teal and grows as the map plays. Hovering over a line highlights that year in orange, and clicking it jumps the whole page to that year and date.</p>
+      <p>We used position on a shared axis because it is the easiest channel for comparing values, and our question is about timing, so day of year had to be on the x axis. We thought about showing one long line from 2000 to 2025, but that makes it hard to compare the same month across years, and the timeline already shows the long view.</p>
+      <p>The y axis zooms in to fit the selected area. Without this, the Mojave Desert (around 0.10 to 0.13) would just be a flat line. The downside is that the scale changes between areas, so we always show the axis labels.</p>
+
+      <h4>Region tiles and readout</h4>
+      <p>We picked six regions based on our exploratory graphs. We split the Central Valley into Sacramento and San Joaquin because they turned out to peak at completely different times of year. Each region tile is a button and also a small bar showing whether that region is greener or browner than usual on the current date, so you can compare all six without clicking through them. Each region kept the same color it had in our exploratory graphs.</p>
+      <p>The readout above the chart puts the numbers into a sentence, like "Greener than usual by 0.08," and shows what percent of California is greener than usual on that date. If the difference is less than 0.02, it just says "about as green as usual," since such small changes don't mean much.</p>
+
+      <h4>Interactions</h4>
+      <ul>
+        <li>Play/pause and speed control to watch the green move through the year (space bar works too)</li>
+        <li>Drag or click the timeline, or use the arrow keys, to jump to any date</li>
+        <li>Click a region tile to select that region</li>
+        <li>Click the map to pick a single spot</li>
+        <li>Draw your own area on the map</li>
+        <li>Hover over the map to see the value, the usual value, and the difference for that spot</li>
+        <li>Hover over or click a line in the chart to see or jump to that year</li>
+        <li>Switch between the greenness and "greener or browner than usual" views</li>
+      </ul>
+
+      <h4>What we tried or left out</h4>
+      <p>We built a third map view that loaded NASA's real satellite photo for the chosen day, so you could see snow, smoke, and clouds. We ended up removing it because the photos took a while to load when switching dates should feel instant, and seeing the photo didn't really help answer our question. Removing it also meant the whole site runs from our own data files.</p>
+      <p>We also thought about adding zoom. Our 250 m exploratory map showed details like individual fields that get blurred at 2 km. But 26 years of 250 m data is way too much to load in a browser, and since our question is about timing, we decided the full 26 years was more important than fine detail.</p>
+      <p>At first the page started playing as soon as it opened. That felt overwhelming, so now it waits until you press play or drag the timeline.</p>
+      <p>We also tried a row of "Start here" buttons that jumped to three stories (spring 2005, the Coast Range in 2014, and the Sierra in July). We took them out because they made the page feel busier than we wanted. We will revisit this idea in the final project and make it feel more natural.</p>
+      <p>Before building the site we tested a few other ideas: grouping pixels into regions automatically by the shape of their seasonal curve, a map of each place's green-up date with a trend over the years, and a slider to swipe between two years. We went with hand-drawn regions because they are easier to name and explain. The green-up trend didn't show a clear change across the state, and the timeline and seasonal chart already let you compare years.</p>
+      <p>Our exploratory graphs only used the Terra satellite, which gives an image every 16 days. For the site we added Aqua to get an image about every 8 days, which makes playback smoother.</p>
+      <p>To make playback smooth, we store each value as a single byte, save each image as the difference from the one before it, and split the data into one compressed file per year. The page loads the first few years and downloads the rest in the background.</p>
+
       <h3>Development process</h3>
-      <p>[Development process goes here.]</p>
+      <p>Team: Alpaslan Ozbas, Bora Vanli, and Nuraiym Mirbekova.</p>
+      <p>Alpaslan built the data pipeline in Python (downloading the images from GIBS, converting colors to NDVI, cleaning the data, and exporting the files for the website) and the D3 website (the map, timeline, seasonal chart, region tiles, and the links between them). He also did most of the testing and narrated the checkpoint video. Bora and Nuraiym helped make the six exploratory visualizations for the checkpoint video, brainstormed ideas for the site, and gave feedback as it changed. They also helped write this write-up and explain our ideas.</p>
+      <p>In total we spent about 19 people-hours: about 7 for Alpaslan, 6 for Bora, and 6 for Nuraiym.</p>
+      <p>The data took the most time. GIBS only gives colored images, so we had to figure out how to turn them back into numbers and then check that the numbers were right. Finding and fixing the broken images also took longer than we expected. The second hardest part was speed, getting 26 years of maps to play smoothly in a browser meant drawing the map on a canvas and changing how we stored and loaded the data. Finally, making all the views update together while data was still loading took a few rounds of bug fixing.</p>
     </section>
 
     <footer class="credits">By Alpaslan Ozbas, Bora Vanli and Nuraiym Mirbekova for DSC 106, Fall 2026.</footer>

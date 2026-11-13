@@ -144,9 +144,10 @@ export async function loadCore(setProgress) {
     return q2v(m);
   };
   // regions and the whole state are precomputed. Custom areas use the years loaded so far
+  data.baseTotal = data.yearList.filter((y) => y >= 2001).length;
   data.areaSeries = (area) => {
     if (area.key in series) {
-      return { values: Float32Array.from(series[area.key], (v) => (v == null ? NaN : v)) };
+      return { values: Float32Array.from(series[area.key], (v) => (v == null ? NaN : v)), baseYears: data.baseTotal };
     }
     if (!area._cache) area._cache = { values: new Float32Array(T).fill(NaN), done: new Set() };
     const cache = area._cache, idx = area.idx, counts = new Uint32Array(256);
@@ -163,7 +164,7 @@ export async function loadCore(setProgress) {
       }
       cache.done.add(y);
     }
-    return { values: cache.values };
+    return { values: cache.values, baseYears: [...cache.done].filter((y) => y >= 2001).length };
   };
 
   data.typicalOf = (values) => {
